@@ -1,3 +1,41 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.3.5] - 2025-10-21
+
+### Added
+- Automated release workflow that creates GitHub releases on version bumps
+- CI/CD pipeline with GitHub Actions for testing and NPM publishing
+- Dependabot configuration for automated dependency updates
+- Comprehensive test fixtures for reliable testing without external dependencies
+- Additional NPM keywords for better discoverability
+
+### Changed
+- Updated all dependencies to latest versions (cheerio 1.1.2, mocha 11.7.4, sinon 21.0.0, standard 17.1.2, etc.)
+- Migrated to @hmb-research/x-ray-crawler package
+- Replaced deprecated Node.js APIs (url.parse, url.resolve) with modern URL API
+- Updated repository URLs to point to HMB-research organization
+- Modernized README badges to point to HMB-research repository
+- Changed git protocol from git:// to git+https:// for better compatibility
+- Updated test assertions for cheerio 1.x compatibility
+
+### Fixed
+- Fixed all network-dependent tests by using local HTML fixtures
+- Fixed linting issues (array-callback-return, naming conventions)
+- Fixed cheerio 1.x HTML output format compatibility
+
+### Removed
+- Removed OpenCollective backers and sponsors sections from README
+- Removed dependency on external websites for testing
+
+---
+
+# Previous Releases
+
 
 <a name="2.3.3"></a>
 # 2.3.2 (2018-06-22)

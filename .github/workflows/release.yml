@@ -1,0 +1,92 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'package.json'
+
+jobs:
+  check-version:
+    name: Check Version and Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get current version
+        id: current_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Get previous version
+        id: previous_version
+        run: |
+          git checkout HEAD^1 -- package.json 2>/dev/null || echo "No previous version"
+          PREV_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
+          git checkout HEAD -- package.json
+          echo "previous=$PREV_VERSION" >> $GITHUB_OUTPUT
+          echo "Previous version: $PREV_VERSION"
+
+      - name: Check if version changed
+        id: version_changed
+        run: |
+          if [ "${{ steps.current_version.outputs.version }}" != "${{ steps.previous_version.outputs.previous }}" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changed from ${{ steps.previous_version.outputs.previous }} to ${{ steps.current_version.outputs.version }}"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged"
+          fi
+
+      - name: Extract changelog for version
+        id: changelog
+        if: steps.version_changed.outputs.changed == 'true'
+        run: |
+          VERSION="${{ steps.current_version.outputs.version }}"
+
+          # Check if CHANGELOG.md exists
+          if [ -f "CHANGELOG.md" ]; then
+            # Extract changelog for this version
+            CHANGES=$(awk "/## \[${VERSION}\]/,/## \[/" CHANGELOG.md | sed '1d;$d' || echo "")
+          else
+            CHANGES=""
+          fi
+
+          # If no changelog, use default message
+          if [ -z "$CHANGES" ]; then
+            CHANGES="Release v${VERSION}
+
+See commit history for details."
+          fi
+
+          # Save to file to handle multiline
+          echo "$CHANGES" > /tmp/release_notes.txt
+          echo "Changelog extracted for v${VERSION}"
+
+      - name: Create GitHub Release
+        if: steps.version_changed.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.current_version.outputs.version }}"
+
+          # Create release using gh CLI
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes-file /tmp/release_notes.txt \
+            --target master
+
+      - name: Output result
+        run: |
+          if [ "${{ steps.version_changed.outputs.changed }}" == "true" ]; then
+            echo "✅ Release v${{ steps.current_version.outputs.version }} created successfully"
+          else
+            echo "⏭️  No version change detected, skipping release"
+          fi
