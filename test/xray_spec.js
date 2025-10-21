@@ -66,7 +66,9 @@ describe('Xray basics', function () {
 
   it('should work without passing a URL in the callback', function (done) {
     const x = Xray()
-    x('http://google.com', {
+    const googleMockHtml = read(join(fixturesPath, 'google-mock.html'), 'utf8')
+
+    x(googleMockHtml, {
       title: 'title'
     })(function (err, obj) {
       if (err) return done(err)
