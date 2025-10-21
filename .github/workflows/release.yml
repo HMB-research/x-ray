@@ -61,9 +61,7 @@ jobs:
 
           # If no changelog, use default message
           if [ -z "$CHANGES" ]; then
-            CHANGES="Release v${VERSION}
-
-See commit history for details."
+            CHANGES=$(printf "Release v%s\n\nSee commit history for details." "${VERSION}")
           fi
 
           # Save to file to handle multiline
