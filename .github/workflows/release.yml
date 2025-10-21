@@ -1,5 +1,9 @@
 name: Create Release
 
+# NOTE: To trigger the publish workflow automatically, you need to create a PAT_TOKEN secret
+# with repo and workflow permissions. Without it, the default GITHUB_TOKEN will be used,
+# which won't trigger the publish workflow due to GitHub Actions security limitations.
+
 on:
   push:
     branches:
@@ -71,7 +75,7 @@ jobs:
       - name: Create GitHub Release
         if: steps.version_changed.outputs.changed == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.current_version.outputs.version }}"
 
