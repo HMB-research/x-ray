@@ -83,7 +83,7 @@
     "node": ">= 14.0.0"
   },
   "scripts": {
-    "coveralls": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha --report lcovonly",
+    "coveralls": "istanbul cover ./node_modules/.bin/_mocha --report lcovonly",
     "pretest": "standard",
     "test": "mocha"
   },
