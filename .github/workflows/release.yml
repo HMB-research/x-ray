@@ -1,94 +1,54 @@
-name: Create Release
-
-# NOTE: To trigger the publish workflow automatically, you need to create a PAT_TOKEN secret
-# with repo and workflow permissions. Without it, the default GITHUB_TOKEN will be used,
-# which won't trigger the publish workflow due to GitHub Actions security limitations.
+name: Release
 
 on:
   push:
     branches:
       - master
-    paths:
-      - 'package.json'
+  workflow_dispatch:
 
 jobs:
-  check-version:
-    name: Check Version and Create Release
+  release:
+    name: Release and Publish
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+
+    outputs:
+      released: ${{ steps.semantic.outputs.new_release_published }}
+      version: ${{ steps.semantic.outputs.new_release_version }}
+      major: ${{ steps.semantic.outputs.new_release_major_version }}
+      minor: ${{ steps.semantic.outputs.new_release_minor_version }}
+      patch: ${{ steps.semantic.outputs.new_release_patch_version }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Get current version
-        id: current_version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $VERSION"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
 
-      - name: Get previous version
-        id: previous_version
-        run: |
-          git checkout HEAD^1 -- package.json 2>/dev/null || echo "No previous version"
-          PREV_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
-          git checkout HEAD -- package.json
-          echo "previous=$PREV_VERSION" >> $GITHUB_OUTPUT
-          echo "Previous version: $PREV_VERSION"
+      - name: Install dependencies
+        run: npm install
 
-      - name: Check if version changed
-        id: version_changed
-        run: |
-          if [ "${{ steps.current_version.outputs.version }}" != "${{ steps.previous_version.outputs.previous }}" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "Version changed from ${{ steps.previous_version.outputs.previous }} to ${{ steps.current_version.outputs.version }}"
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "Version unchanged"
-          fi
+      - name: Run tests
+        run: npm test
+        continue-on-error: false
 
-      - name: Extract changelog for version
-        id: changelog
-        if: steps.version_changed.outputs.changed == 'true'
-        run: |
-          VERSION="${{ steps.current_version.outputs.version }}"
-
-          # Check if CHANGELOG.md exists
-          if [ -f "CHANGELOG.md" ]; then
-            # Extract changelog for this version
-            CHANGES=$(awk "/## \[${VERSION}\]/,/## \[/" CHANGELOG.md | sed '1d;$d' || echo "")
-          else
-            CHANGES=""
-          fi
-
-          # If no changelog, use default message
-          if [ -z "$CHANGES" ]; then
-            CHANGES=$(printf "Release v%s\n\nSee commit history for details." "${VERSION}")
-          fi
-
-          # Save to file to handle multiline
-          echo "$CHANGES" > /tmp/release_notes.txt
-          echo "Changelog extracted for v${VERSION}"
-
-      - name: Create GitHub Release
-        if: steps.version_changed.outputs.changed == 'true'
+      - name: Semantic Release
+        id: semantic
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION="${{ steps.current_version.outputs.version }}"
-
-          # Create release using gh CLI
-          gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
-            --notes-file /tmp/release_notes.txt \
-            --target master
-
-      - name: Output result
-        run: |
-          if [ "${{ steps.version_changed.outputs.changed }}" == "true" ]; then
-            echo "✅ Release v${{ steps.current_version.outputs.version }} created successfully"
-          else
-            echo "⏭️  No version change detected, skipping release"
-          fi
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release

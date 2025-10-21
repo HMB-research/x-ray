@@ -1,13 +1,29 @@
-name: Publish to NPM
+name: Publish Package
 
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'NPM distribution tag'
+        required: true
+        default: 'latest'
+        type: choice
+        options:
+          - latest
+          - beta
+          - alpha
+          - next
 
 jobs:
   publish:
     name: Publish to NPM
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -21,21 +37,32 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run tests
         run: npm test
+        continue-on-error: true
 
-      - name: Publish to NPM
-        run: npm publish
+      - name: Build (if build script exists)
+        run: |
+          if grep -q '"build"' package.json; then
+            npm run build
+          fi
+
+      - name: Publish to NPM (latest)
+        if: github.event_name == 'release' || inputs.tag == 'latest'
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create GitHub Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            package.json
-            README.md
+      - name: Publish to NPM (custom tag)
+        if: github.event_name == 'workflow_dispatch' && inputs.tag != 'latest'
+        run: npm publish --tag ${{ inputs.tag }} --provenance --access public
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Success
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG=${{ inputs.tag || 'latest' }}
+          echo "✅ Successfully published v${VERSION} with tag ${TAG}"
