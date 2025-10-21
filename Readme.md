@@ -1,14 +1,14 @@
 ![x-ray](https://cldup.com/fMBbTcVtwB.png)
 
-[![NPM Version](https://img.shields.io/npm/v/x-ray.svg?style=flat-square)](https://www.npmjs.org/package/x-ray)
+[![NPM Version](https://img.shields.io/npm/v/@hmb-research/x-ray.svg?style=flat-square)](https://www.npmjs.org/package/@hmb-research/x-ray)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/HMB-research/x-ray/ci.yml?branch=master&style=flat-square&label=CI)](https://github.com/HMB-research/x-ray/actions/workflows/ci.yml)
-[![NPM Downloads](https://img.shields.io/npm/dm/x-ray.svg?style=flat-square)](https://www.npmjs.org/package/x-ray)
-[![Node Version](https://img.shields.io/node/v/x-ray.svg?style=flat-square)](https://www.npmjs.org/package/x-ray)
+[![NPM Downloads](https://img.shields.io/npm/dm/@hmb-research/x-ray.svg?style=flat-square)](https://www.npmjs.org/package/@hmb-research/x-ray)
+[![Node Version](https://img.shields.io/node/v/@hmb-research/x-ray.svg?style=flat-square)](https://www.npmjs.org/package/@hmb-research/x-ray)
 [![GitHub Issues](https://img.shields.io/github/issues/HMB-research/x-ray.svg?style=flat-square)](https://github.com/HMB-research/x-ray/issues)
-[![License](https://img.shields.io/npm/l/x-ray.svg?style=flat-square)](https://github.com/HMB-research/x-ray/blob/master/LICENSE)
+[![License](https://img.shields.io/npm/l/@hmb-research/x-ray.svg?style=flat-square)](https://github.com/HMB-research/x-ray/blob/master/LICENSE)
 
 ```js
-var Xray = require('x-ray')
+var Xray = require('@hmb-research/x-ray')
 var x = Xray()
 
 x('https://blog.ycombinator.com/', '.post', [
@@ -25,7 +25,7 @@ x('https://blog.ycombinator.com/', '.post', [
 ## Installation
 
 ```
-npm install x-ray
+npm install @hmb-research/x-ray
 ```
 
 ## Features
@@ -201,7 +201,7 @@ X-ray becomes more powerful when you start composing instances together. Here ar
 ### Crawling to another site
 
 ```js
-var Xray = require('x-ray')
+var Xray = require('@hmb-research/x-ray')
 var x = Xray()
 
 x('http://google.com', {
@@ -220,7 +220,7 @@ x('http://google.com', {
 ### Scoping a selection
 
 ```js
-var Xray = require('x-ray')
+var Xray = require('@hmb-research/x-ray')
 var x = Xray()
 
 x('http://mat.io', {
@@ -251,7 +251,7 @@ x('http://mat.io', {
 Filters can specified when creating a new Xray instance. To apply filters to a value, append them to the selector using `|`.
 
 ```js
-var Xray = require('x-ray')
+var Xray = require('@hmb-research/x-ray')
 var x = Xray({
   filters: {
     trim: function(value) {
