@@ -1,3 +1,26 @@
+# [3.0.0](https://github.com/HMB-research/x-ray/compare/v2.3.6...v3.0.0) (2025-10-21)
+
+
+### Bug Fixes
+
+* add NODE_AUTH_TOKEN to semantic-release step ([7db1e36](https://github.com/HMB-research/x-ray/commit/7db1e36e94dfe3cd7d1b724f8ea2999cf70715d2))
+* add semantic-release plugins as dev dependencies ([5f0ceca](https://github.com/HMB-research/x-ray/commit/5f0cecac003074fef880d49087f8e3273aac835e))
+* correct coveralls script path in package.json ([4c9d47b](https://github.com/HMB-research/x-ray/commit/4c9d47bb533a3fdec6596b1f449c708bcc0f9c74))
+* implement semantic-release for automated versioning and publishing ([2ae692e](https://github.com/HMB-research/x-ray/commit/2ae692e325f2a810081eabe5cb505ff1cdd5e27f))
+
+
+### Features
+
+* migrate package to @hmb-research/x-ray scoped name ([8cca8b7](https://github.com/HMB-research/x-ray/commit/8cca8b7118531c993955509ef9e979d8323048d5))
+
+
+### BREAKING CHANGES
+
+* Package name changed from 'x-ray' to '@hmb-research/x-ray'.
+Users must update their package.json and require statements.
+* Future releases will be managed through conventional commits
+instead of manual package.json version bumps.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -301,6 +324,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * updates ([9c4e329](https://github.com/lapwinglabs/x-ray/commit/9c4e329))
 * written, needs to be tested better. ([427e7f2](https://github.com/lapwinglabs/x-ray/commit/427e7f2))
 * added: gitignore ([da14f58](https://github.com/lapwinglabs/x-ray/commit/da14f58))
-
-
-
