@@ -1,13 +1,16 @@
 {
   "name": "x-ray",
   "description": "structure any website",
-  "homepage": "https://github.com/matthewmueller/x-ray#readme",
+  "homepage": "https://github.com/HMB-research/x-ray#readme",
   "version": "2.3.4",
   "main": "index.js",
   "author": {
     "name": "Matthew Mueller",
     "email": "matt@lapwinglabs.com"
   },
+  "maintainers": [
+    "HMB Research <contact@hmb-research.com>"
+  ],
   "contributors": [
     "Paul Barrett",
     "Kiko Beats <josefrancisco.verdu@gmail.com>",
@@ -17,10 +20,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/matthewmueller/x-ray.git"
+    "url": "git+https://github.com/HMB-research/x-ray.git"
   },
   "bugs": {
-    "url": "https://github.com/matthewmueller/x-ray/issues"
+    "url": "https://github.com/HMB-research/x-ray/issues"
   },
   "keywords": [
     "api",
@@ -28,8 +31,22 @@
     "scrape",
     "scraper",
     "structure",
-    "web"
+    "web",
+    "crawler",
+    "spider",
+    "webscraping",
+    "data-extraction",
+    "html-parser"
   ],
+  "files": [
+    "index.js",
+    "lib/",
+    "LICENSE",
+    "Readme.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@hmb-research/x-ray-crawler": "2.0.7",
     "batch": "~0.6.1",
