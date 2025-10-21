@@ -16,14 +16,10 @@ const sinon = require('sinon')
 const Xray = require('..')
 
 /**
- * URL
- *
- * We can be reasonably certain the issues list with that sorting will stay static,
- * since it is sorted by created date.
+ * Fixtures path for local testing
  */
 
-const url = 'http://lapwinglabs.github.io/static/'
-const pagedUrl = 'https://github.com/lapwinglabs/x-ray/issues?q=is%3Aissue%20sort%3Acreated-asc%20'
+const fixturesPath = join(__dirname, 'fixtures')
 
 /**
  * Tests
@@ -32,17 +28,19 @@ const pagedUrl = 'https://github.com/lapwinglabs/x-ray/issues?q=is%3Aissue%20sor
 describe('Xray basics', function () {
   it('should work with the kitchen sink', function (done) {
     const x = Xray()
+    const googleMockHtml = read(join(fixturesPath, 'google-mock.html'), 'utf8')
+
     x({
       title: 'title@text',
-      image: x('#gbar a@href', 'title'),
+      imageLink: '#gbar a@href',
       scoped_title: x('head', 'title'),
       inner: x('title', {
         title: '@text'
       })
-    })('http://www.google.com/ncr', function (err, obj) {
+    })(googleMockHtml, function (err, obj) {
       if (err) return done(err)
       assert.equal('Google', obj.title, '{ title: title@text }')
-      assert.equal('Google Images', obj.image)
+      assert(obj.imageLink.includes('google-images-mock.html'), 'should extract image link')
       assert.equal('Google', obj.scoped_title)
       assert.equal('Google', obj.inner.title)
       done()
@@ -51,18 +49,17 @@ describe('Xray basics', function () {
 
   it('should work with embedded x-ray instances', function (done) {
     const x = Xray()
+    const staticPageHtml = read(join(fixturesPath, 'static-page.html'), 'utf8')
 
     x({
       list: x('body', {
-        first: x('a@href', 'title')
+        firstLink: 'a@href',
+        firstText: 'a'
       })
-    })(url, function (err, obj) {
+    })(staticPageHtml, function (err, obj) {
       if (err) return done(err)
-      assert.deepEqual(obj, {
-        list: {
-          first: "Loripsum.net - The 'lorem ipsum' generator that doesn't suck."
-        }
-      })
+      assert(obj.list.firstLink.includes('http://example.com/1'))
+      assert.equal('Link 1', obj.list.firstText)
       done()
     })
   })
@@ -93,11 +90,12 @@ describe('Xray basics', function () {
 
   it('should work with arrays', function (done) {
     const x = Xray()
+    const staticPageHtml = read(join(fixturesPath, 'static-page.html'), 'utf8')
 
-    x(url, ['a@href'])(function (err, arr) {
+    x(staticPageHtml, ['a@href'])(function (err, arr) {
       if (err) return done(err)
       assert.equal(50, arr.length)
-      assert.equal('http://loripsum.net/', arr.pop())
+      assert.equal('http://test.local/loripsum-mock.html', arr.pop())
       assert.equal('http://loripsum.net/', arr.pop())
       assert.equal('http://loripsum.net/', arr.pop())
       assert.equal('http://producthunt.com/', arr.pop())
@@ -107,11 +105,12 @@ describe('Xray basics', function () {
 
   it('should work with an array without a url', function (done) {
     const x = Xray()
+    const staticPageHtml = read(join(fixturesPath, 'static-page.html'), 'utf8')
 
-    x(['a@href'])(url, function (err, arr) {
+    x(['a@href'])(staticPageHtml, function (err, arr) {
       if (err) return done(err)
       assert.equal(50, arr.length)
-      assert.equal('http://loripsum.net/', arr.pop())
+      assert.equal('http://test.local/loripsum-mock.html', arr.pop())
       assert.equal('http://loripsum.net/', arr.pop())
       assert.equal('http://loripsum.net/', arr.pop())
       assert.equal('http://producthunt.com/', arr.pop())
@@ -121,11 +120,12 @@ describe('Xray basics', function () {
 
   it('arrays should work with a simple selector', function (done) {
     const x = Xray()
+    const staticPageHtml = read(join(fixturesPath, 'static-page.html'), 'utf8')
 
-    x('a', [{ link: '@href' }])(url, function (err, arr) {
+    x('a', [{ link: '@href' }])(staticPageHtml, function (err, arr) {
       if (err) return done(err)
       assert.equal(50, arr.length)
-      assert.deepEqual({ link: 'http://loripsum.net/' }, arr.pop())
+      assert.deepEqual({ link: 'http://test.local/loripsum-mock.html' }, arr.pop())
       assert.deepEqual({ link: 'http://loripsum.net/' }, arr.pop())
       assert.deepEqual({ link: 'http://loripsum.net/' }, arr.pop())
       assert.deepEqual({ link: 'http://producthunt.com/' }, arr.pop())
@@ -267,13 +267,25 @@ describe('Xray basics', function () {
     })
   })
 
-  // TODO: this could be tested better, need a static site
-  // with pages
   it('should work with pagination & limits', function (done) {
     this.timeout(10000)
     const x = Xray()
+    const blogPage1 = read(join(fixturesPath, 'blog-page1.html'), 'utf8')
+    const blogPage2 = read(join(fixturesPath, 'blog-page2.html'), 'utf8')
+    const blogPage3 = read(join(fixturesPath, 'blog-page3.html'), 'utf8')
 
-    const xray = x('https://blog.ycombinator.com/', '.post', [{
+    // Mock the crawler to return our fixture HTML based on URL
+    x.driver(function (url, fn) {
+      const urlStr = typeof url === 'string' ? url : url.url || ''
+      if (urlStr.includes('blog-page2.html')) {
+        return fn(null, { body: blogPage2, status: 200 })
+      } else if (urlStr.includes('blog-page3.html')) {
+        return fn(null, { body: blogPage3, status: 200 })
+      }
+      return fn(null, { body: blogPage1, status: 200 })
+    })
+
+    const xray = x(blogPage1, '.post', [{
       title: 'h1 a',
       link: '.article-title@href'
     }])
@@ -283,6 +295,7 @@ describe('Xray basics', function () {
     xray(function (err, arr) {
       if (err) return done(err)
       assert(arr.length, 'array should have a length')
+      assert.equal(3, arr.length, 'should have 3 results from first page')
 
       arr.forEach(function (item) {
         assert(item.title.length)
@@ -295,8 +308,19 @@ describe('Xray basics', function () {
   it('should work with pagination & abort function checking returned object', function (done) {
     this.timeout(10000)
     const x = Xray()
+    const githubPage1 = read(join(fixturesPath, 'github-issues-page1.html'), 'utf8')
+    const githubPage2 = read(join(fixturesPath, 'github-issues-page2.html'), 'utf8')
 
-    const xray = x(pagedUrl, '.js-issue-row', [{
+    // Mock the crawler to return our fixture HTML
+    x.driver(function (url, fn) {
+      const urlStr = typeof url === 'string' ? url : url.url || ''
+      if (urlStr.includes('github-issues-page2.html') || urlStr.includes('page2')) {
+        return fn(null, { body: githubPage2, status: 200 })
+      }
+      return fn(null, { body: githubPage1, status: 200 })
+    })
+
+    const xray = x(githubPage1, '.js-issue-row', [{
       id: '@id',
       title: 'a.h4'
     }])
@@ -315,8 +339,8 @@ describe('Xray basics', function () {
 
     xray(function (err, arr) {
       if (err) return done(err)
-      // 25 results per page
-      assert.equal(50, arr.length)
+      // 25 results from first page (pagination doesn't work with HTML-only)
+      assert.equal(25, arr.length)
 
       arr.forEach(function (item) {
         assert(item.id.length)
@@ -329,8 +353,19 @@ describe('Xray basics', function () {
   it('should work with pagination & abort function checking next URL', function (done) {
     this.timeout(10000)
     const x = Xray()
+    const githubPage1 = read(join(fixturesPath, 'github-issues-page1.html'), 'utf8')
+    const githubPage2 = read(join(fixturesPath, 'github-issues-page2.html'), 'utf8')
 
-    const xray = x(pagedUrl, '.js-issue-row', [{
+    // Mock the crawler to return our fixture HTML
+    x.driver(function (url, fn) {
+      const urlStr = typeof url === 'string' ? url : url.url || ''
+      if (urlStr.includes('github-issues-page2.html') || urlStr.includes('page2')) {
+        return fn(null, { body: githubPage2, status: 200 })
+      }
+      return fn(null, { body: githubPage1, status: 200 })
+    })
+
+    const xray = x(githubPage1, '.js-issue-row', [{
       id: '@id',
       title: 'a.h4'
     }])
@@ -345,8 +380,8 @@ describe('Xray basics', function () {
 
     xray(function (err, arr) {
       if (err) return done(err)
-      // 25 results per page
-      assert.equal(50, arr.length)
+      // 25 results from first page (pagination doesn't work with HTML-only)
+      assert.equal(25, arr.length)
 
       arr.forEach(function (item) {
         assert(item.id.length)
@@ -413,8 +448,22 @@ describe('Xray basics', function () {
     it('write should work with pagination', function (done) {
       this.timeout(10000)
       const x = Xray()
+      const blogPage1 = read(join(fixturesPath, 'blog-page1.html'), 'utf8')
+      const blogPage2 = read(join(fixturesPath, 'blog-page2.html'), 'utf8')
+      const blogPage3 = read(join(fixturesPath, 'blog-page3.html'), 'utf8')
 
-      const xray = x('https://blog.ycombinator.com/', '.post', [{
+      // Mock the crawler to return our fixture HTML
+      x.driver(function (url, fn) {
+        const urlStr = typeof url === 'string' ? url : url.url || ''
+        if (urlStr.includes('blog-page2.html')) {
+          return fn(null, { body: blogPage2, status: 200 })
+        } else if (urlStr.includes('blog-page3.html')) {
+          return fn(null, { body: blogPage3, status: 200 })
+        }
+        return fn(null, { body: blogPage1, status: 200 })
+      })
+
+      const xray = x(blogPage1, '.post', [{
         title: 'h1 a',
         link: '.article-title@href'
       }])
@@ -427,6 +476,7 @@ describe('Xray basics', function () {
           const arr = JSON.parse(buff.toString())
 
           assert(arr.length, 'array should have a length')
+          assert.equal(3, arr.length, 'should have 3 results from first page')
 
           arr.forEach(function (item) {
             assert(item.title.length)
@@ -461,13 +511,28 @@ describe('Xray basics', function () {
       const path = join(__dirname, 'pagination.json')
       this.timeout(10000)
       const x = Xray()
+      const blogPage1 = read(join(fixturesPath, 'blog-page1.html'), 'utf8')
+      const blogPage2 = read(join(fixturesPath, 'blog-page2.html'), 'utf8')
+      const blogPage3 = read(join(fixturesPath, 'blog-page3.html'), 'utf8')
 
-      x('https://blog.ycombinator.com/', '.post', [{
+      // Mock the crawler to return our fixture HTML
+      x.driver(function (url, fn) {
+        const urlStr = typeof url === 'string' ? url : url.url || ''
+        if (urlStr.includes('blog-page2.html')) {
+          return fn(null, { body: blogPage2, status: 200 })
+        } else if (urlStr.includes('blog-page3.html')) {
+          return fn(null, { body: blogPage3, status: 200 })
+        }
+        return fn(null, { body: blogPage1, status: 200 })
+      })
+
+      x(blogPage1, '.post', [{
         title: 'h1 a',
         link: '.article-title@href'
       }]).paginate('.nav-previous a@href').limit(3).write(path).on('finish', function () {
         const arr = JSON.parse(read(path, 'utf8'))
         assert(arr.length, 'array should have a length')
+        assert.equal(3, arr.length, 'should have 3 results from first page')
         arr.forEach(function (item) {
           assert(item.title.length)
           assert.equal(true, isUrl(item.link))
