@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.6] - 2025-10-21
+
+### Fixed
+- Fixed failing test that was attempting to fetch external URL (google.com)
+- Updated test to use local HTML fixture for consistent CI/CD execution
+- Fixed YAML syntax error in automated release workflow
+
 ## [2.3.5] - 2025-10-21
 
 ### Added
