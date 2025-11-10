@@ -16,6 +16,7 @@ const cheerio = require('cheerio')
 const enstore = require('enstore')
 const walk = require('./lib/walk')
 const fs = require('fs')
+const validateTypes = require('./lib/validate-types')
 
 const CONST = {
   CRAWLER_METHODS: ['concurrency', 'throttle', 'timeout', 'driver', 'delay', 'limit', 'abort'],
@@ -32,6 +33,8 @@ function Xray (options) {
   const crawler = Crawler()
   options = options || {}
   const filters = options.filters || {}
+  const customTypes = {} // Storage for custom type handlers
+  const strictMode = options.strict || false // Enable strict type validation
 
   function xray (source, scope, selector) {
     const args = params(source, scope, selector)
@@ -44,7 +47,7 @@ function Xray (options) {
     let pages = []
     let stream
 
-    const walkHTML = WalkHTML(xray, selector, scope, filters)
+    const walkHTML = WalkHTML(xray, selector, scope, filters, customTypes, strictMode)
     const request = Request(crawler)
 
     function node (source2, fn) {
@@ -197,6 +200,26 @@ function Xray (options) {
     }
   })
 
+  /**
+   * Register or get a custom type handler
+   * @param {string} name - The name of the custom type
+   * @param {Function} handler - The handler function (optional for getter)
+   * @param {Function} validator - Optional validator function to identify this type
+   * @returns {*} The xray instance (setter) or the handler (getter)
+   */
+  xray.type = function (name, handler, validator) {
+    if (arguments.length === 1) {
+      // Getter
+      return customTypes[name] ? customTypes[name].handler : undefined
+    }
+    // Setter
+    customTypes[name] = {
+      handler,
+      validator: validator || null
+    }
+    return xray
+  }
+
   return xray
 }
 
@@ -218,18 +241,70 @@ function load (html, url) {
   return $
 }
 
-function WalkHTML (xray, selector, scope, filters) {
+function WalkHTML (xray, selector, scope, filters, customTypes, strictMode) {
   return function walkHTML ($, fn) {
+    // Validate selector in strict mode
+    if (strictMode) {
+      try {
+        validateTypes.assertValidType(selector, 'selector', { customTypes })
+      } catch (err) {
+        return fn(err)
+      }
+    }
+
     walk(selector, function (v, k, next) {
+      // Handle null/undefined (optional fields)
+      if (v === null || v === undefined) {
+        return next(null, null)
+      }
+
+      // Handle string selector
       if (typeof v === 'string') {
         const value = resolve($, root(scope), v, filters)
         return next(null, value)
-      } else if (typeof v === 'function') {
+      }
+
+      // Handle function selector
+      if (typeof v === 'function') {
         return v($, function (err, obj) {
           if (err) return next(err)
           return next(null, obj)
         })
-      } else if (isArray(v)) {
+      }
+
+      // Handle RegExp selector
+      if (v instanceof RegExp) {
+        // Extract text from current cheerio context
+        // $ could be the whole document or a scoped selection
+        let text = ''
+        if ($.root) {
+          // Full cheerio instance
+          text = $.root().text()
+        } else if ($.text) {
+          // Scoped selection (e.g., from array iteration)
+          text = $.text()
+        } else {
+          text = String($)
+        }
+        debug('RegExp selector: pattern=%s, text=%s', v, text)
+        const match = text.match(v)
+        const result = match ? (match[1] !== undefined ? match[1] : match[0]) : null
+        debug('RegExp result: %s', result)
+        return next(null, result)
+      }
+
+      // Handle custom types (check before arrays and objects)
+      if (customTypes && typeof customTypes === 'object') {
+        for (const typeName in customTypes) {
+          const typeConfig = customTypes[typeName]
+          if (typeConfig.validator && typeConfig.validator(v)) {
+            return typeConfig.handler(v, $, scope, filters, next)
+          }
+        }
+      }
+
+      // Handle array selector
+      if (isArray(v)) {
         if (typeof v[0] === 'string') {
           return next(null, resolve($, root(scope), v, filters))
         } else if (typeof v[0] === 'object') {
@@ -253,6 +328,16 @@ function WalkHTML (xray, selector, scope, filters) {
           })
         }
       }
+
+      // Unknown type - log warning in debug mode, skip in normal mode
+      if (strictMode) {
+        const validation = validateTypes.validateType(v, k, { customTypes })
+        if (!validation.valid) {
+          return next(new TypeError(validation.error))
+        }
+      }
+
+      debug('unknown selector type for "%s": %s', k, typeof v)
       return next()
     }, function (err, obj) {
       if (err) return fn(err)

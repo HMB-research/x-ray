@@ -194,6 +194,154 @@ X-ray also has support for selecting collections of tags. While `x('ul', 'li')` 
 
 Additionally, X-ray supports "collections of collections" allowing you to smartly select all list items in all lists with a command like this: `x(['ul'], ['li'])`.
 
+## Selector Types
+
+X-ray supports multiple selector types to handle different data extraction needs. Each type provides unique capabilities for structuring and extracting data.
+
+### String Selectors
+
+The most common selector type. Uses CSS-like syntax with support for attribute extraction using `@`.
+
+```js
+x('http://example.com', {
+  title: 'h1',                    // Extract text content
+  link: 'a@href',                 // Extract href attribute
+  html: '.content@html',          // Extract innerHTML
+  image: 'img.logo@src'           // Extract src attribute
+})
+```
+
+### Function Selectors
+
+Use functions for advanced extraction logic or to compose nested x-ray instances.
+
+```js
+x('http://example.com', {
+  // Custom extraction logic
+  custom: function($, callback) {
+    const value = $('.selector').text().toUpperCase()
+    callback(null, value)
+  },
+
+  // Nested x-ray instance (crawling)
+  details: x('.link@href', {
+    title: 'h1',
+    description: 'p'
+  })
+})
+```
+
+### Array Selectors
+
+Extract multiple elements into an array.
+
+```js
+// Array of strings
+x('http://example.com', {
+  links: ['a@href']  // Returns array of all href attributes
+})
+
+// Array of objects
+x('http://example.com', '.items', [{
+  title: 'h2',
+  price: '.price',
+  link: 'a@href'
+}])
+```
+
+### RegExp Selectors
+
+Extract data using regular expressions with capture groups.
+
+```js
+x('http://example.com', {
+  price: /\$(\d+\.\d{2})/,        // Extracts "19.99" from "$19.99"
+  email: /[\w.]+@[\w.]+\.\w+/,    // Extracts email address
+  orderId: /Order #([A-Z0-9-]+)/  // Extracts order ID from text
+})
+```
+
+RegExp selectors return the first capture group if present, otherwise the full match. Returns `null` if no match is found.
+
+### Optional Fields (null/undefined)
+
+Use `null` or `undefined` to define optional fields that always return `null`.
+
+```js
+x('http://example.com', {
+  title: 'h1',           // Required field
+  subtitle: null,        // Optional field (always null)
+  description: undefined // Optional field (always null)
+})
+```
+
+This is useful for defining a consistent schema where some fields may not always be present.
+
+### Custom Type Handlers
+
+Register custom type handlers for specialized extraction logic.
+
+```js
+const x = Xray()
+
+// Define a custom type
+function PriceType(selector) {
+  this.selector = selector
+}
+
+// Register the handler
+x.type('price', function(value, $, scope, filters, callback) {
+  const text = $(value.selector).text()
+  const price = parseFloat(text.replace(/[^0-9.]/g, ''))
+  callback(null, isNaN(price) ? null : price)
+}, function(value) {
+  return value instanceof PriceType
+})
+
+// Use the custom type
+x('http://example.com', {
+  price: new PriceType('.price')
+})(function(err, result) {
+  console.log(result.price) // Returns numeric price
+})
+```
+
+### Strict Mode
+
+Enable strict type validation during development to catch selector type errors:
+
+```js
+const x = Xray({ strict: true })
+
+x('http://example.com', {
+  title: 'h1',
+  invalid: 123  // Throws TypeError in strict mode
+})
+```
+
+### TypeScript Support
+
+X-ray now includes TypeScript definitions for type-safe scraping:
+
+```typescript
+import XRay = require('@hmb-research/x-ray')
+
+interface Article {
+  title: string
+  author: string
+  price: string | null
+}
+
+const xray = XRay()
+const result = await xray('http://example.com', '.article', [{
+  title: 'h2',
+  author: '.author',
+  price: /\$(\d+\.\d{2})/
+}])
+
+// result is typed as Article[]
+```
+
 ## Composition
 
 X-ray becomes more powerful when you start composing instances together. Here are a few possibilities:
