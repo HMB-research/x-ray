@@ -2,7 +2,7 @@
   "name": "@hmb-research/x-ray",
   "description": "structure any website",
   "homepage": "https://github.com/HMB-research/x-ray#readme",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "main": "index.js",
   "types": "index.d.ts",
   "author": {

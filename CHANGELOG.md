@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/HMB-research/x-ray/compare/v3.0.0...v3.1.0) (2025-11-10)
+
+
+### Features
+
+* add full Node types support with TypeScript definitions and new selector types ([#3](https://github.com/HMB-research/x-ray/issues/3)) ([4b67cd9](https://github.com/HMB-research/x-ray/commit/4b67cd9f6d3ca1891d6387fb076c17995cfdb1b7)), closes [#issue-number](https://github.com/HMB-research/x-ray/issues/issue-number)
+
 # [3.0.0](https://github.com/HMB-research/x-ray/compare/v2.3.6...v3.0.0) (2025-10-21)
 
 
